@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: challenge4-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - challenge4-network
+
+  node-service:
+    build:
+      context: ./docker/api
+    container_name: challenge4-node-service
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - challenge4-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: challenge4-nginx
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - node-service
+    networks: 
+      - challenge4-network
+
+networks:
+  challenge4-network:
+    driver: bridge
+
+volumes:
+  db_data:

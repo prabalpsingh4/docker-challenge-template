@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: challenge3-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - challenge3-network
+
+  node-service:
+    build:
+      context: ./docker/api
+    container_name: challenge3-node-service
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+    ports:
+      - "3000:3000"  # Node.js service is exposed on port 3000
+    depends_on:
+      - db
+    networks:
+      - challenge3-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: challenge3-nginx
+    restart: always
+    ports:
+      - "8081:80"  ## had to do 8081 instead of 8080 cus of this error Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:8080 -> 0.0.0.0:0: listen tcp 0.0.0.0:8080: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - node-service
+    networks:
+      - challenge3-network
+
+networks:
+  challenge3-network:
+    driver: bridge
+
+volumes:
+  db_data:
